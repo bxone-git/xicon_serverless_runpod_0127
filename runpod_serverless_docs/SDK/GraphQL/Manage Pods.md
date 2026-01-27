@@ -1,0 +1,858 @@
+> ## Documentation Index
+>
+> Fetch the complete documentation index at: https://docs.runpod.io/llms.txt
+> Use this file to discover all available pages before exploring further.
+
+# Manage Pods
+
+## Authentication
+
+Runpod uses API Keys for all API requests. Go to [Settings](https://www.console.runpod.io/user/settings) to manage your API keys.
+
+## GraphQL API spec
+
+If you need detailed queries, mutations, fields, and inputs, look at the [GraphQL spec](https://graphql-spec.runpod.io/).
+
+## Create Pods
+
+A Pod consists of the following resources:
+
+- 0 or more GPUs - A pod can be started with 0 GPUs for the purposes of accessing data, though GPU-accelerated functions and web services will fail to work.
+
+- vCPU
+
+- System RAM
+
+- Container Disk
+  - It's temporary and removed when the pod is stopped or terminated.
+  - You only pay for the container disk when the pod is running.
+
+- Instance Volume
+  - Data persists even when you reset or stop a Pod. Volume is removed when the Pod is terminated.
+  - You pay for volume storage even when the Pod is stopped.
+
+- Global Networking
+
+### Create on-demand Pod
+
+<Tabs>
+  <Tab title="cURL">
+    ```bash  theme={"theme":{"light":"github-light","dark":"github-dark"}}
+    curl --request POST \
+      --header 'content-type: application/json' \
+      --url 'https://api.runpod.io/graphql?api_key=${YOUR_API_KEY}' \
+      --data '{"query": "mutation { podFindAndDeployOnDemand( input: { cloudType: ALL, gpuCount: 1, volumeInGb: 40, containerDiskInGb: 40, minVcpuCount: 2, minMemoryInGb: 15, gpuTypeId: \"NVIDIA RTX A6000\", name: \"Runpod Tensorflow\", imageName: \"runpod/tensorflow\", dockerArgs: \"\", ports: \"8888/http\", volumeMountPath: \"/workspace\", env: [{ key: \"JUPYTER_PASSWORD\", value: \"rn51hunbpgtltcpac3ol\" }] } ) { id imageName env machineId machine { podHostId } } }"}'
+    ```
+  </Tab>
+
+  <Tab title="GraphQL">
+    ```GraphQL  theme={"theme":{"light":"github-light","dark":"github-dark"}}
+    mutation {
+      podFindAndDeployOnDemand(
+        input: {
+          cloudType: ALL
+          gpuCount: 1
+          volumeInGb: 40
+          containerDiskInGb: 40
+          minVcpuCount: 2
+          minMemoryInGb: 15
+          gpuTypeId: "NVIDIA RTX A6000"
+          name: "Runpod Tensorflow"
+          imageName: "runpod/tensorflow"
+          dockerArgs: ""
+          ports: "8888/http"
+          volumeMountPath: "/workspace"
+          env: [{ key: "JUPYTER_PASSWORD", value: "rn51hunbpgtltcpac3ol" }]
+        }
+      ) {
+        id
+        imageName
+        env
+        machineId
+        machine {
+          podHostId
+        }
+      }
+    }
+    ```
+  </Tab>
+
+  <Tab title="Output">
+    ```json  theme={"theme":{"light":"github-light","dark":"github-dark"}}
+    {
+      "data": {
+        "podFindAndDeployOnDemand": {
+          "id": "50qynxzilsxoey",
+          "imageName": "runpod/tensorflow",
+          "env": [
+            "JUPYTER_PASSWORD=rn51hunbpgtltcpac3ol"
+          ],
+          "machineId": "hpvdausak8xb",
+          "machine": {
+            "podHostId": "50qynxzilsxoey-64410065"
+          }
+        }
+      }
+    }
+    ```
+  </Tab>
+</Tabs>
+
+### Create spot Pod
+
+<Tabs>
+  <Tab title="cURL">
+    ```bash  theme={"theme":{"light":"github-light","dark":"github-dark"}}
+    curl --request POST \
+      --header 'content-type: application/json' \
+      --url 'https://api.runpod.io/graphql?api_key=${YOUR_API_KEY}' \
+      --data '{"query": "mutation { podRentInterruptable( input: { bidPerGpu: 0.2, cloudType: SECURE, gpuCount: 1, volumeInGb: 40, containerDiskInGb: 40, minVcpuCount: 2, minMemoryInGb: 15, gpuTypeId: \"NVIDIA RTX A6000\", name: \"Runpod Pytorch\", imageName: \"runpod/pytorch\", dockerArgs: \"\", ports: \"8888/http\", volumeMountPath: \"/workspace\", env: [{ key: \"JUPYTER_PASSWORD\", value: \"vunw9ybnzqwpia2795p2\" }] } ) { id imageName env machineId machine { podHostId } } }"}'
+    ```
+  </Tab>
+
+  <Tab title="GraphQL">
+    ```GraphQL  theme={"theme":{"light":"github-light","dark":"github-dark"}}
+    mutation {
+      podRentInterruptable(
+        input: {
+          bidPerGpu: 0.2
+          cloudType: SECURE
+          gpuCount: 1
+          volumeInGb: 40
+          containerDiskInGb: 40
+          minVcpuCount: 2
+          minMemoryInGb: 15
+          gpuTypeId: "NVIDIA RTX A6000"
+          name: "Runpod Pytorch"
+          imageName: "runpod/pytorch"
+          dockerArgs: ""
+          ports: "8888/http"
+          volumeMountPath: "/workspace"
+          env: [{ key: "JUPYTER_PASSWORD", value: "vunw9ybnzqwpia2795p2" }]
+        }
+      ) {
+        id
+        imageName
+        env
+        machineId
+        machine {
+          podHostId
+        }
+      }
+    }
+    ```
+  </Tab>
+
+  <Tab title="Output">
+    ```json  theme={"theme":{"light":"github-light","dark":"github-dark"}}
+    {
+      "data": {
+        "podRentInterruptable": {
+          "id": "fkjbybgpwuvmhk",
+          "imageName": "runpod/pytorch",
+          "env": [
+            "JUPYTER_PASSWORD=vunw9ybnzqwpia2795p2"
+          ],
+          "machineId": "hpvdausak8xb",
+          "machine": {
+            "podHostId": "fkjbybgpwuvmhk-64410065"
+          }
+        }
+      }
+    }
+    ```
+  </Tab>
+</Tabs>
+
+### Filter by CUDA version
+
+You can pass in the `allowedCudaVersions` as a list of CUDA versions that you want to allow for the GPU in the pod.
+
+This helps in specifying the compatible CUDA versions for your GPU setup.
+
+<Tabs>
+  <Tab title="cURL">
+    ```bash  theme={"theme":{"light":"github-light","dark":"github-dark"}}
+    curl --request POST \
+      --header 'content-type: application/json' \
+      --url 'https://api.runpod.io/graphql?api_key=${YOUR_API_KEY}' \
+      --data '{
+        "query": "mutation { podResume( input: { podId: \"inzk6tzuz833h5\", gpuCount: 1, allowedCudaVersions: [\"12.0\", \"12.1\", \"12.2\", \"12.3\"] } ) { id desiredStatus imageName env machineId machine { podHostId } } }"
+      }'
+    ```
+  </Tab>
+
+  <Tab title="GraphQL">
+    ```GraphQL  theme={"theme":{"light":"github-light","dark":"github-dark"}}
+    mutation {
+      podResume(input: {
+        podId: "inzk6tzuz833h5",
+        gpuCount: 1,
+        allowedCudaVersions: ["12.0", "12.1", "12.2", "12.3"]
+      }) {
+        id
+        desiredStatus
+        imageName
+        env
+        machineId
+        machine {
+          podHostId
+        }
+      }
+    }
+    ```
+  </Tab>
+
+  <Tab title="Output">
+    ```json  theme={"theme":{"light":"github-light","dark":"github-dark"}}
+    {
+      "data": {
+        "podResume": {
+          "id": "inzk6tzuz833h5",
+          "desiredStatus": "RUNNING",
+          "imageName": "runpod/tensorflow",
+          "env": [
+            { "key": "JUPYTER_PASSWORD", "value": "ywm4c9r15j1x6gfrds5n" }
+          ],
+          "machineId": "hpvdausak8xb",
+          "machine": {
+            "podHostId": "inzk6tzuz833h5-64410065"
+          }
+        }
+      }
+    }
+    ```
+  </Tab>
+</Tabs>
+
+## Start Pods
+
+### Start on-demand Pod
+
+<Tabs>
+  <Tab title="cURL">
+    ```bash  theme={"theme":{"light":"github-light","dark":"github-dark"}}
+    curl --request POST \
+      --header 'content-type: application/json' \
+      --url 'https://api.runpod.io/graphql?api_key=${YOUR_API_KEY}' \
+      --data '{"query": "mutation { podResume( input: { podId: \"inzk6tzuz833h5\", gpuCount: 1 } ) { id desiredStatus imageName env machineId machine { podHostId } } }"}'
+    ```
+  </Tab>
+
+  <Tab title="GraphQL">
+    ```GraphQL  theme={"theme":{"light":"github-light","dark":"github-dark"}}
+    mutation {
+      podResume(input: {podId: "inzk6tzuz833h5", gpuCount: 1}) {
+        id
+        desiredStatus
+        imageName
+        env
+        machineId
+        machine {
+          podHostId
+        }
+      }
+    }
+    ```
+  </Tab>
+
+  <Tab title="Output">
+    ```json  theme={"theme":{"light":"github-light","dark":"github-dark"}}
+    {
+      "data": {
+        "podResume": {
+          "id": "inzk6tzuz833h5",
+          "desiredStatus": "RUNNING",
+          "imageName": "runpod/tensorflow",
+          "env": [
+            "JUPYTER_PASSWORD=ywm4c9r15j1x6gfrds5n"
+          ],
+          "machineId": "hpvdausak8xb",
+          "machine": {
+            "podHostId": "inzk6tzuz833h5-64410065"
+          }
+        }
+      }
+    }
+    ```
+  </Tab>
+</Tabs>
+
+### Start spot Pod
+
+<Tabs>
+  <Tab title="cURL">
+    ```bash  theme={"theme":{"light":"github-light","dark":"github-dark"}}
+    curl --request POST \
+      --header 'content-type: application/json' \
+      --url 'https://api.runpod.io/graphql?api_key=${YOUR_API_KEY}' \
+      --data '{"query": "mutation { podBidResume( input: { podId: \"d62t7qg9n5vtan\", bidPerGpu: 0.2, gpuCount: 1 } ) { id desiredStatus imageName env machineId machine { podHostId } } }"}'
+    ```
+  </Tab>
+
+  <Tab title="GraphQL">
+    ```GraphQL  theme={"theme":{"light":"github-light","dark":"github-dark"}}
+    mutation {
+      podBidResume(input: {podId: "d62t7qg9n5vtan", bidPerGpu: 0.2, gpuCount: 1}) {
+        id
+        desiredStatus
+        imageName
+        env
+        machineId
+        machine {
+          podHostId
+        }
+      }
+    }
+    ```
+  </Tab>
+
+  <Tab title="Output">
+    ```json  theme={"theme":{"light":"github-light","dark":"github-dark"}}
+    {
+      "data": {
+        "podBidResume": {
+          "id": "d62t7qg9n5vtan",
+          "desiredStatus": "RUNNING",
+          "imageName": "runpod/tensorflow",
+          "env": [
+            "JUPYTER_PASSWORD=vunw9ybnzqwpia2795p2"
+          ],
+          "machineId": "hpvdausak8xb",
+          "machine": {
+            "podHostId": "d62t7qg9n5vtan-64410065"
+          }
+        }
+      }
+    }
+    ```
+  </Tab>
+</Tabs>
+
+### Filter by CUDA version
+
+You can pass in the `allowedCudaVersions` as a list of CUDA versions that you want to allow for the GPU in the pod.
+
+This helps in specifying the compatible CUDA versions for your GPU setup.
+
+<Tabs>
+  <Tab title="cURL">
+    ```bash  theme={"theme":{"light":"github-light","dark":"github-dark"}}
+    curl --request POST \
+      --header 'content-type: application/json' \
+      --url 'https://api.runpod.io/graphql?api_key=${YOUR_API_KEY}' \
+      --data '{
+        "query": "mutation { podRentInterruptable( input: { bidPerGpu: 0.2, cloudType: SECURE, gpuCount: 1, volumeInGb: 40, containerDiskInGb: 40, minVcpuCount: 2, minMemoryInGb: 15, gpuTypeId: \"NVIDIA RTX A6000\", name: \"Runpod Pytorch\", imageName: \"runpod/pytorch\", dockerArgs: \"\", ports: \"8888/http\", volumeMountPath: \"/workspace\", env: [{ key: \"JUPYTER_PASSWORD\", value: \"vunw9ybnzqwpia2795p2\" }], allowedCudaVersions: [\"12.0\", \"12.1\", \"12.2\", \"12.3\"] } ) { id imageName env machineId machine { podHostId } } }"
+      }'
+    ```
+  </Tab>
+
+  <Tab title="GraphQL">
+    ```GraphQL  theme={"theme":{"light":"github-light","dark":"github-dark"}}
+    mutation {
+      podRentInterruptable(input: {
+        bidPerGpu: 0.2,
+        cloudType: SECURE,
+        gpuCount: 1,
+        volumeInGb: 40,
+        containerDiskInGb: 40,
+        minVcpuCount: 2,
+        minMemoryInGb: 15,
+        gpuTypeId: "NVIDIA RTX A6000",
+        name: "Runpod Pytorch",
+        imageName: "runpod/pytorch",
+        dockerArgs: "",
+        ports: "8888/http",
+        volumeMountPath: "/workspace",
+        env: [{ key: "JUPYTER_PASSWORD", value: "vunw9ybnzqwpia2795p2" }],
+        allowedCudaVersions: ["12.0", "12.1", "12.2", "12.3"]
+      }) {
+        id
+        imageName
+        env
+        machineId
+        machine {
+          podHostId
+        }
+      }
+    }
+    ```
+  </Tab>
+
+  <Tab title="Output">
+    ```json  theme={"theme":{"light":"github-light","dark":"github-dark"}}
+    {
+      "data": {
+        "podRentInterruptable": {
+          "id": "your_pod_id",
+          "imageName": "runpod/pytorch",
+          "env": [
+            { "key": "JUPYTER_PASSWORD", "value": "vunw9ybnzqwpia2795p2" }
+          ],
+          "machineId": "your_machine_id",
+          "machine": {
+            "podHostId": "your_pod_host_id"
+          }
+        }
+      }
+    }
+    ```
+  </Tab>
+</Tabs>
+
+## Stop Pods
+
+<Tabs>
+  <Tab title="cURL">
+    ```bash  theme={"theme":{"light":"github-light","dark":"github-dark"}}
+    curl --request POST \
+      --header 'content-type: application/json' \
+      --url 'https://api.runpod.io/graphql?api_key=${YOUR_API_KEY}' \
+      --data '{"query": "mutation { podStop(input: {podId: \"riixlu8oclhp\"}) { id desiredStatus } }"}'
+    ```
+  </Tab>
+
+  <Tab title="GraphQL">
+    ```GraphQL  theme={"theme":{"light":"github-light","dark":"github-dark"}}
+    mutation {
+      podStop(input: {podId: "riixlu8oclhp"}) {
+        id
+        desiredStatus
+      }
+    }
+    ```
+  </Tab>
+
+  <Tab title="Output">
+    ```json  theme={"theme":{"light":"github-light","dark":"github-dark"}}
+    {
+      "data": {
+        "podStop": {
+          "id": "riixlu8oclhp",
+          "desiredStatus": "EXITED"
+        }
+      }
+    }
+    ```
+  </Tab>
+</Tabs>
+
+## List Pods
+
+### List all Pods
+
+<Tabs>
+  <Tab title="cURL">
+    ```bash  theme={"theme":{"light":"github-light","dark":"github-dark"}}
+    curl --request POST \
+      --header 'content-type: application/json' \
+      --url 'https://api.runpod.io/graphql?api_key=${YOUR_API_KEY}' \
+      --data '{"query": "query Pods { myself { pods { id name runtime { uptimeInSeconds ports { ip isIpPublic privatePort publicPort type } gpus { id gpuUtilPercent memoryUtilPercent } container { cpuPercent memoryPercent } } } } }"}'
+    ```
+  </Tab>
+
+  <Tab title="GraphQL">
+    ```GraphQL  theme={"theme":{"light":"github-light","dark":"github-dark"}}
+    query Pods {
+      myself {
+        pods {
+          id
+          name
+          runtime {
+            uptimeInSeconds
+            ports {
+              ip
+              isIpPublic
+              privatePort
+              publicPort
+              type
+            }
+            gpus {
+              id
+              gpuUtilPercent
+              memoryUtilPercent
+            }
+            container {
+              cpuPercent
+              memoryPercent
+            }
+          }
+        }
+      }
+    }
+    ```
+  </Tab>
+
+  <Tab title="Output">
+    ```json  theme={"theme":{"light":"github-light","dark":"github-dark"}}
+    {
+      "data": {
+        "myself": {
+          "pods": [
+            {
+              "id": "ldl1dxirsim64n",
+              "name": "Runpod Pytorch",
+              "runtime": {
+                "uptimeInSeconds": 3931,
+                "ports": [
+                  {
+                    "ip": "100.65.0.101",
+                    "isIpPublic": false,
+                    "privatePort": 8888,
+                    "publicPort": 60141,
+                    "type": "http"
+                  }
+                ],
+                "gpus": [
+                  {
+                    "id": "GPU-e0488b7e-6932-795b-a125-4472c16ea72c",
+                    "gpuUtilPercent": 0,
+                    "memoryUtilPercent": 0
+                  }
+                ],
+                "container": {
+                  "cpuPercent": 0,
+                  "memoryPercent": 0
+                }
+              }
+            },
+            {
+              "id": "hpvdausak8xb00",
+              "name": "hpvdausak8xb-BG",
+              "runtime": {
+                "uptimeInSeconds": 858937,
+                "ports": null,
+                "gpus": [
+                  {
+                    "id": "GPU-2630fe4d-a75d-a9ae-8c15-6866088dfae2",
+                    "gpuUtilPercent": 100,
+                    "memoryUtilPercent": 100
+                  }
+                ],
+                "container": {
+                  "cpuPercent": 0,
+                  "memoryPercent": 1
+                }
+              }
+            }
+          ]
+        }
+      }
+    }
+    ```
+  </Tab>
+</Tabs>
+
+### Get Pod by ID
+
+<Tabs>
+  <Tab title="cURL">
+    ```bash  theme={"theme":{"light":"github-light","dark":"github-dark"}}
+    curl --request POST \
+      --header 'content-type: application/json' \
+      --url 'https://api.runpod.io/graphql?api_key=${YOUR_API_KEY}' \
+      --data '{"query": "query Pod { pod(input: {podId: \"ldl1dxirsim64n\"}) { id name runtime { uptimeInSeconds ports { ip isIpPublic privatePort publicPort type } gpus { id gpuUtilPercent memoryUtilPercent } container { cpuPercent memoryPercent } } } }"}'
+    ```
+  </Tab>
+
+  <Tab title="GraphQL">
+    ```GraphQL  theme={"theme":{"light":"github-light","dark":"github-dark"}}
+    query Pod {
+      pod(input: {podId: "ldl1dxirsim64n"}) {
+        id
+        name
+        runtime {
+          uptimeInSeconds
+          ports {
+            ip
+            isIpPublic
+            privatePort
+            publicPort
+            type
+          }
+          gpus {
+            id
+            gpuUtilPercent
+            memoryUtilPercent
+          }
+          container {
+            cpuPercent
+            memoryPercent
+          }
+        }
+      }
+    }
+    ```
+  </Tab>
+
+  <Tab title="Output">
+    ```json  theme={"theme":{"light":"github-light","dark":"github-dark"}}
+    {
+      "data": {
+        "pod": {
+          "id": "ldl1dxirsim64n",
+          "name": "Runpod Pytorch",
+          "runtime": {
+            "uptimeInSeconds": 11,
+            "ports": [
+              {
+                "ip": "100.65.0.101",
+                "isIpPublic": false,
+                "privatePort": 8888,
+                "publicPort": 60141,
+                "type": "http"
+              }
+            ],
+            "gpus": [
+              {
+                "id": "GPU-e0488b7e-6932-795b-a125-4472c16ea72c",
+                "gpuUtilPercent": 0,
+                "memoryUtilPercent": 0
+              }
+            ],
+            "container": {
+              "cpuPercent": 0,
+              "memoryPercent": 0
+            }
+          }
+        }
+      }
+    }
+    ```
+  </Tab>
+</Tabs>
+
+## List GPU types
+
+When creating a Pod, you will need to pass GPU type IDs. These queries can help find all GPU types, their IDs, and other attributes like VRAM.
+
+<Tabs>
+  <Tab title="cURL">
+    ```bash  theme={"theme":{"light":"github-light","dark":"github-dark"}}
+    curl --request POST \
+      --header 'content-type: application/json' \
+      --url 'https://api.runpod.io/graphql?api_key=${YOUR_API_KEY}' \
+      --data '{"query": "query GpuTypes { gpuTypes { id displayName memoryInGb } }"}'
+    ```
+  </Tab>
+
+  <Tab title="GraphQL">
+    ```GraphQL  theme={"theme":{"light":"github-light","dark":"github-dark"}}
+    query GpuTypes {
+      gpuTypes {
+        id
+        displayName
+        memoryInGb
+      }
+    }
+    ```
+  </Tab>
+
+  <Tab title="Output">
+    ```json  theme={"theme":{"light":"github-light","dark":"github-dark"}}
+    {
+      "data": {
+        "gpuTypes": [
+          {
+            "id": "NVIDIA GeForce RTX 3070",
+            "displayName": "RTX 3070",
+            "memoryInGb": 8
+          },
+          {
+            "id": "NVIDIA GeForce RTX 3080",
+            "displayName": "RTX 3080",
+            "memoryInGb": 10
+          },
+          {
+            "id": "NVIDIA RTX A6000",
+            "displayName": "RTX A6000",
+            "memoryInGb": 48
+          }
+        ]
+      }
+    }
+    ```
+  </Tab>
+</Tabs>
+
+### Get GPU type by ID
+
+<Tabs>
+  <Tab title="cURL">
+    ```bash  theme={"theme":{"light":"github-light","dark":"github-dark"}}
+    curl --request POST \
+      --header 'content-type: application/json' \
+      --url 'https://api.runpod.io/graphql?api_key=${YOUR_API_KEY}' \
+      --data '{"query": "query GpuTypes { gpuTypes(input: {id: \"NVIDIA GeForce RTX 3090\"}) { id displayName memoryInGb secureCloud communityCloud lowestPrice(input: {gpuCount: 1}) { minimumBidPrice uninterruptablePrice } } }"}'
+    ```
+  </Tab>
+
+  <Tab title="GraphQL">
+    ```GraphQL  theme={"theme":{"light":"github-light","dark":"github-dark"}}
+    query GpuTypes {
+      gpuTypes(input: {id: "NVIDIA GeForce RTX 3090"}) {
+        id
+        displayName
+        memoryInGb
+        secureCloud
+        communityCloud
+        lowestPrice(input: {gpuCount: 1}) {
+          minimumBidPrice
+          uninterruptablePrice
+        }
+      }
+    }
+    ```
+  </Tab>
+
+  <Tab title="Output">
+    ```json  theme={"theme":{"light":"github-light","dark":"github-dark"}}
+    {
+      "data": {
+        "gpuTypes": [
+          {
+            "id": "NVIDIA GeForce RTX 3090",
+            "displayName": "RTX 3090",
+            "memoryInGb": 24,
+            "secureCloud": false,
+            "communityCloud": true,
+            "lowestPrice": {
+              "minimumBidPrice": 0.163,
+              "uninterruptablePrice": 0.3
+            }
+          }
+        ]
+      }
+    }
+    ```
+  </Tab>
+</Tabs>
+
+### Check GPU type availability
+
+You can check if a specific [GPU type](/references/gpu-types) is available in the [Secure Cloud or Community Cloud](/pods/overview#pod-types).
+
+<Note>
+  The `stockStatus` field can help you determine the likelihood that a particular GPU type will be available when creating a Pod. For example, if `stockStatus` is `"Low"`, it means there are very few GPUs of that type available.
+</Note>
+
+<Tabs>
+  <Tab title="cURL">
+    ```bash  theme={"theme":{"light":"github-light","dark":"github-dark"}}
+    curl --request POST \
+      --header 'content-type: application/json' \
+      --url 'https://api.runpod.io/graphql?api_key=${YOUR_API_KEY}' \
+      --data '{"query": "query { gpuTypes(input: { id: \"NVIDIA RTX A4000\" }) { lowestPrice(input: { compliance: null, dataCenterId: null, globalNetwork: false, gpuCount: 1, minDisk: 0, minMemoryInGb: 8, minVcpuCount: 2, secureCloud: true }) { minimumBidPrice uninterruptablePrice minVcpu minMemory stockStatus compliance maxUnreservedGpuCount availableGpuCounts __typename } id displayName memoryInGb securePrice communityPrice oneMonthPrice oneWeekPrice threeMonthPrice sixMonthPrice secureSpotPrice __typename } }"}'
+    ```
+  </Tab>
+
+  <Tab title="GraphQL">
+    ```GraphQL  theme={"theme":{"light":"github-light","dark":"github-dark"}}
+    query {
+      gpuTypes(input: { id: "NVIDIA RTX A4000" }) {
+        lowestPrice(input: {
+          compliance: null,
+          dataCenterId: null,
+          globalNetwork: false,
+          gpuCount: 1,
+          minDisk: 0,
+          minMemoryInGb: 8,
+          minVcpuCount: 2,
+          secureCloud: true
+        }) {
+          minimumBidPrice
+          uninterruptablePrice
+          minVcpu
+          minMemory
+          stockStatus
+          compliance
+          maxUnreservedGpuCount
+          availableGpuCounts
+          __typename
+        }
+        id
+        displayName
+        memoryInGb
+        securePrice
+        communityPrice
+        oneMonthPrice
+        oneWeekPrice
+        threeMonthPrice
+        sixMonthPrice
+        secureSpotPrice
+        __typename
+      }
+    }
+    ```
+  </Tab>
+
+  <Tab title="Example output (high stock)">
+    ```json  theme={"theme":{"light":"github-light","dark":"github-dark"}}
+    {
+      "data": {
+        "gpuTypes": [
+          {
+            "lowestPrice": {
+              "minimumBidPrice": 0.2,
+              "uninterruptablePrice": 0.35,
+              "minVcpu": 2,
+              "minMemory": 8,
+              "stockStatus": "High",
+              "compliance": null,
+              "maxUnreservedGpuCount": 5,
+              "availableGpuCounts": [1, 2, 4],
+              "__typename": "GpuTypeLowestPrice"
+            },
+            "id": "NVIDIA RTX A4000",
+            "displayName": "RTX A4000",
+            "memoryInGb": 16,
+            "securePrice": 0.35,
+            "communityPrice": 0.2,
+            "oneMonthPrice": 200,
+            "oneWeekPrice": 60,
+            "threeMonthPrice": 500,
+            "sixMonthPrice": 900,
+            "secureSpotPrice": 0.18,
+            "__typename": "GpuType"
+          }
+        ]
+      }
+    }
+    ```
+  </Tab>
+
+  <Tab title="Example output (low stock)">
+    ```json  theme={"theme":{"light":"github-light","dark":"github-dark"}}
+    {
+      "data": {
+        "gpuTypes": [
+          {
+            "lowestPrice": {
+              "minimumBidPrice": 0.16,
+              "uninterruptablePrice": 0.24,
+              "minVcpu": 5,
+              "minMemory": 31,
+              "stockStatus": "Low",
+              "compliance": null,
+              "maxUnreservedGpuCount": 7,
+              "availableGpuCounts": [1,2,3,4,5,6,7],
+              "__typename": "LowestPrice"
+            },
+            "id": "NVIDIA RTX A4000",
+            "displayName": "RTX A4000",
+            "memoryInGb": 16,
+            "securePrice": 0.24,
+            "communityPrice": 0.17,
+            "oneMonthPrice": null,
+            "oneWeekPrice": null,
+            "threeMonthPrice": 0.204,
+            "sixMonthPrice": 0.192,
+            "secureSpotPrice": 0.16,
+            "__typename": "GpuType"
+          }
+        ]
+      }
+    }
+    ```
+  </Tab>
+</Tabs>

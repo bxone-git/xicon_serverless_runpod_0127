@@ -1,0 +1,105 @@
+> ## Documentation Index
+>
+> Fetch the complete documentation index at: https://docs.runpod.io/llms.txt
+> Use this file to discover all available pages before exploring further.
+
+# Overview
+
+Runpod CLI is an [open source](https://github.com/runpod/runpodctl) command-line interface tool for managing your Runpod resources remotely from your local machine. You can transfer files and data between your local system and Runpod, execute code on remote Pods, and automate Pod deployment workflows.
+
+## Install Runpod CLI locally
+
+Every Pod you deploy comes preinstalled with the `runpodctl` command and a Pod-scoped API key. You can also install it on your local machine to manage your Pods remotely from your own system.
+
+### Step 1: Choose an installation method
+
+Choose the installation method that matches your operating system.
+
+<Tabs>
+  <Tab title="macOS">
+    **Homebrew:**
+
+    ```sh  theme={"theme":{"light":"github-light","dark":"github-dark"}}
+    brew install runpod/runpodctl/runpodctl
+    ```
+
+    **ARM (Apple Silicon):**
+
+    ```sh  theme={"theme":{"light":"github-light","dark":"github-dark"}}
+    wget --quiet --show-progress https://github.com/runpod/runpodctl/releases/download/v1.14.3/runpodctl-darwin-arm64 -O runpodctl && chmod +x runpodctl && sudo mv runpodctl /usr/local/bin/runpodctl
+    ```
+
+    **AMD (Intel):**
+
+    ```sh  theme={"theme":{"light":"github-light","dark":"github-dark"}}
+    wget --quiet --show-progress https://github.com/runpod/runpodctl/releases/download/v1.14.3/runpodctl-darwin-amd64 -O runpodctl && chmod +x runpodctl && sudo mv runpodctl /usr/local/bin/runpodctl
+    ```
+
+  </Tab>
+
+  <Tab title="Linux">
+    ```sh  theme={"theme":{"light":"github-light","dark":"github-dark"}}
+    wget --quiet --show-progress https://github.com/Run-Pod/runpodctl/releases/download/v1.14.3/runpodctl-linux-amd64 -O runpodctl && chmod +x runpodctl && sudo cp runpodctl /usr/bin/runpodctl
+    ```
+  </Tab>
+
+  <Tab title="Windows">
+    ```sh  theme={"theme":{"light":"github-light","dark":"github-dark"}}
+    wget https://github.com/runpod/runpodctl/releases/download/v1.14.3/runpodctl-windows-amd64.exe -O runpodctl.exe
+    ```
+  </Tab>
+
+  <Tab title="Google Colab / Jupyter Notebook">
+    ```sh  theme={"theme":{"light":"github-light","dark":"github-dark"}}
+    !wget --quiet --show-progress https://github.com/Run-Pod/runpodctl/releases/download/v1.14.3/runpodctl-linux-amd -O runpodctl
+    !chmod +x runpodctl
+    !cp runpodctl /usr/bin/runpodctl
+    ```
+  </Tab>
+</Tabs>
+
+This installs `runpodctl` globally on your system, so you can run commands from any directory.
+
+### Step 2: Configure your API key
+
+Before you can use `runpodctl` locally, you must configure it with an [API key](/get-started/api-keys).
+
+Run the following command to add your API key to `runpodctl`, replacing `YOUR_API_KEY` with your API key:
+
+```sh theme={"theme":{"light":"github-light","dark":"github-dark"}}
+runpodctl config --apiKey YOUR_API_KEY
+```
+
+After running the command, you should see a confirmation message similar to this:
+
+```text theme={"theme":{"light":"github-light","dark":"github-dark"}}
+saved apiKey into config file: /Users/runpod/.runpod/config.toml
+```
+
+### Step 3: Verify installation
+
+To verify that `runpodctl` installed successfully, run this command:
+
+```sh theme={"theme":{"light":"github-light","dark":"github-dark"}}
+runpodctl version
+```
+
+You should see which version is installed:
+
+```sh theme={"theme":{"light":"github-light","dark":"github-dark"}}
+runpodctl v1.14.4
+```
+
+## Help and reference
+
+Learn how to use Runpod CLI commands by browsing the CLI reference using the sidebar to the left, or by running the `help` command:
+
+```sh theme={"theme":{"light":"github-light","dark":"github-dark"}}
+runpodctl help
+```
+
+Learn more about a particular command by running:
+
+```sh theme={"theme":{"light":"github-light","dark":"github-dark"}}
+runpodctl [command] help
+```

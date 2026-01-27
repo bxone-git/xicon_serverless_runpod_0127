@@ -1,0 +1,39 @@
+> ## Documentation Index
+>
+> Fetch the complete documentation index at: https://docs.runpod.io/llms.txt
+> Use this file to discover all available pages before exploring further.
+
+# send
+
+Transfer files or folders from your local machine to a Pod or another computer using a secure peer-to-peer connection.
+
+<RequestExample>
+  ```sh Command theme={"theme":{"light":"github-light","dark":"github-dark"}}
+  runpodctl send <fileOrFolder> [flags]
+  ```
+</RequestExample>
+
+## Example
+
+Send a folder to a Pod using a connection code:
+
+```sh theme={"theme":{"light":"github-light","dark":"github-dark"}}
+runpodctl send ./my-dataset --code rainbow-unicorn-42
+```
+
+## Arguments
+
+<ResponseField name="<fileOrFolder>" type="string" required>
+  The path to the file or folder you want to send. Can be a single file or an entire directory.
+</ResponseField>
+
+## Flags
+
+<ResponseField name="--code" type="string">
+  A custom code phrase used to establish the secure connection between sender and receiver. The receiver must use the same code with the `receive` command.
+</ResponseField>
+
+## Related commands
+
+- [`runpodctl receive`](/runpodctl/reference/runpodctl-receive)
+- [`runpodctl`](/runpodctl/reference/runpodctl)

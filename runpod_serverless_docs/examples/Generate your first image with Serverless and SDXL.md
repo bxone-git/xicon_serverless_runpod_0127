@@ -1,0 +1,220 @@
+> ## Documentation Index
+>
+> Fetch the complete documentation index at: https://docs.runpod.io/llms.txt
+> Use this file to discover all available pages before exploring further.
+
+# Generate your first image with Serverless and SDXL
+
+> Learn how to deploy a Serverless endpoint running SDXL from the Runpod Hub and use it to generate images.
+
+In this tutorial, you will learn how to deploy a Serverless endpoint running [Stable Diffusion XL](https://stablediffusionxl.com/) (SDXL) on Runpod, submit image generation jobs, monitor their progress, and decode the resulting images.
+
+[Runpod's Serverless platform](/serverless/overview) allows you to run AI/ML models in the cloud without managing infrastructure, automatically scaling resources as needed. SDXL is a powerful AI model that generates high-quality images from text prompts.
+
+## What you'll learn
+
+In this tutorial you'll learn:
+
+- How to deploy a Serverless endpoint using the [Runpod Hub](/hub/overview).
+- How to submit jobs, monitor their progress, and retrieve results.
+- How to generate an image using SDXL.
+- How to decode the base64 output to retrieve the image.
+
+## Requirements
+
+Before starting this tutorial you'll need:
+
+- A Runpod account with available credits.
+- A Runpod API key (available in your user settings).
+- Basic familiarity with command-line tools like `curl`.
+- Python installed on your system (for the image decoding step).
+- The `jq` command-line JSON processor (optional but recommended).
+
+<Warning>
+  Keep your API key secure and never share it publicly. Remember to retrieve your results within 30 minutes, as inputs and outputs are not stored longer than this for privacy protection.
+</Warning>
+
+## Step 1: Deploy a Serverless endpoint using the Runpod Hub
+
+1. Navigate to the [SDXL listing](https://console.runpod.io/hub/runpod-workers/worker-sdxl) in the Runpod Hub web interface.
+2. Click **Deploy \[VERSION_NUMBER]**, then click **Create Endpoint** to confirm. This creates a fully configured endpoint with appropriate GPU and worker settings for running SDXL.
+
+<Note>
+  This tutorial uses version 2.1.0 of runpod-workers/worker-sdxl. Later versions may require different configurations or instructions.
+</Note>
+
+3. On the endpoint page, make a note of the **Endpoint ID** . You'll need this value to submit jobs and retrieve results.
+
+Once deployed, your endpoint will be assigned a unique ID (e.g. `32vgrms732dkwi`). Your endpoint URL will follow this pattern: `https://api.runpod.ai/v2/ENDPOINT_ID/run` for asynchronous requests.
+
+## Step 2: Submit your first job
+
+Use the `/run` endpoint to submit an asynchronous job that will generate an image based on your text prompt.
+
+Replace `ENDPOINT_ID` with your actual endpoint ID and `YOUR_API_KEY` with your Runpod API key in the following command:
+
+```bash theme={"theme":{"light":"github-light","dark":"github-dark"}}
+curl -X POST https://api.runpod.ai/v2/ENDPOINT_ID/run \
+    -H 'Content-Type: application/json'                             \
+    -H 'Authorization: Bearer YOUR_API_KEY' \
+    -d '{"input": {"prompt": "A cute fluffy white dog in the style of a Pixar animation 3D drawing."}}'
+```
+
+The API will respond immediately with a job ID and status. You'll receive a response similar to this:
+
+```json theme={"theme":{"light":"github-light","dark":"github-dark"}}
+{
+  "id": "c80ffee4-f315-4e25-a146-0f3d98cf024b",
+  "status": "IN_QUEUE"
+}
+```
+
+The job ID is crucial for tracking your request's progress. Save this ID as you'll need it to check the status and retrieve results.
+
+## Step 3: Monitor job progress
+
+Check your job's status using the `/status` endpoint with the job ID you received in the previous step.
+
+Use the following command to check your job's progress, replacing the placeholders (`ENDPOINT_ID`, `JOB_ID`, and `YOUR_API_KEY`) with your actual values:
+
+```bash theme={"theme":{"light":"github-light","dark":"github-dark"}}
+curl https://api.runpod.ai/v2/ENDPOINT_ID/status/JOB_ID \
+-H 'Content-Type: application/json' \
+    -H 'Authorization: Bearer YOUR_API_KEY'
+```
+
+While your job is processing, you'll receive a response indicating the current status:
+
+```json theme={"theme":{"light":"github-light","dark":"github-dark"}}
+{
+  "delayTime": 2624,
+  "id": "c80ffee4-f315-4e25-a146-0f3d98cf024b",
+  "input": {
+    "prompt": "A cute fluffy white dog in the style of a Pixar animation 3D drawing."
+  },
+  "status": "IN_PROGRESS"
+}
+```
+
+The `delayTime` field shows how long the job waited in the queue before processing began, measured in milliseconds.
+
+## Step 4: Retrieve completed results
+
+Continue polling this endpoint until the status changes to `COMPLETED`. Once your job completes, the status endpoint will return the generated image data encoded in base64 format.
+
+When your job finishes successfully, you'll receive a response containing the output:
+
+```json theme={"theme":{"light":"github-light","dark":"github-dark"}}
+{
+  "delayTime": 27540,
+  "executionTime": 14904,
+  "id": "fb5a249d-12c7-48e5-a0e4-b813c3381262-22",
+  "output": [
+    {
+      "image_url": "data:image/png;base64 ...",
+      "seed": 37362
+    }
+  ],
+  "status": "COMPLETED"
+  "workerId": "qebsdrm4qidkl3"
+}
+```
+
+The `executionTime` field shows how long the actual image generation took, while `delayTime` indicates the initial queue wait time. Both values are in milliseconds.
+
+To save the complete response for processing, use this command:
+
+```bash theme={"theme":{"light":"github-light","dark":"github-dark"}}
+curl https://api.runpod.ai/v2/ENDPOINT_ID/status/JOB_ID \
+    -H 'Content-Type: application/json' \
+    -H 'Authorization: Bearer YOUR_API_KEY' | jq . > output.json
+```
+
+<Warning>
+  You have up to 30 minutes to retrieve your results via the status endpoint. After this time, the results are automatically deleted for security.
+</Warning>
+
+## Step 5: Decode and save your image
+
+Now we'll convert the base64-encoded image data into a viewable image file using Python.
+
+Create a Python script called `decode_image.py` to decode the base64 image data from your JSON response:
+
+```python theme={"theme":{"light":"github-light","dark":"github-dark"}}
+import base64
+from PIL import Image
+import io
+import os
+import json
+
+def decode_json_and_save_image(json_filepath, output_filename="decoded_image.png"):
+    """
+    Reads a JSON file, extracts the base64 image string, decodes it, and saves it as an image file.
+
+    Args:
+        json_filepath (str): The path to the input JSON file.
+        output_filename (str): The name for the output image file.
+    """
+    try:
+        with open(json_filepath, 'r') as f:
+            data = json.load(f)
+
+        # Extract the base64 string from the nested structure
+        base64_url = data.get("output", {}).get("image_url")
+
+        if not base64_url:
+            print("Error: 'image_url' not found in the JSON file.")
+            return
+
+        # Remove data URI prefix if present
+        if "," in base64_url:
+            _, encoded_data = base64_url.split(",", 1)
+        else:
+            encoded_data = base64_url
+
+        # Decode base64 to bytes
+        image_data = base64.b64decode(encoded_data)
+        image_stream = io.BytesIO(image_data)
+        image = Image.open(image_stream)
+        image.save(output_filename)
+
+        print(f"Image successfully saved as '{output_filename}'")
+        print(f"Image path: {os.path.abspath(output_filename)}")
+
+    except FileNotFoundError:
+        print(f"Error: The file '{json_filepath}' was not found.")
+    except json.JSONDecodeError:
+        print(f"Error: Could not decode JSON from the file '{json_filepath}'.")
+    except base64.binascii.Error as e:
+        print(f"Error decoding base64 string: {e}")
+        print("Please ensure the input is a valid base64 string.")
+    except Exception as e:
+        print(f"An unexpected error occurred: {e}")
+
+# Process the output.json file
+decode_json_and_save_image("output.json", "generated_image.png")
+```
+
+Run the script to decode the image data and save it as a PNG file:
+
+```bash theme={"theme":{"light":"github-light","dark":"github-dark"}}
+python decode_image.py
+```
+
+You should see the following output:
+
+```bash theme={"theme":{"light":"github-light","dark":"github-dark"}}
+Image successfully saved as 'generated_image.png'
+Image path: /Users/path/to/your/project/generated_image.png
+```
+
+Congratulations! You've successfully used Runpod's Serverless platform to generate an AI image using SDXL. You now understand the complete workflow of submitting asynchronous jobs, monitoring their progress, and retrieving results.
+
+## Next steps
+
+Now that you've learned how to generate images with Serverless, consider exploring these advanced topics:
+
+- Learn how to create [synchronous requests](/serverless/endpoints/operations) using the `/runsync` endpoint for faster responses.
+- Explore [endpoint configurations](/serverless/endpoints/endpoint-configurations) to optimize performance and cost.
+- Discover how to [send requests](/serverless/endpoints/send-requests) with advanced parameters and webhook notifications.
+- Try deploying your own [custom worker](/serverless/workers/custom-worker) for specialized AI models.

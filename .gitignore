@@ -1,0 +1,35 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+.venv/
+env/
+.env
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+
+# Data and output
+data/
+output/
+models/
+simulated_uploaded/
+
+# OMC state
+.omc/
+
+# Test artifacts
+.pytest_cache/
+*.egg-info/
+dist/
+build/
+
+# Logs
+*.log

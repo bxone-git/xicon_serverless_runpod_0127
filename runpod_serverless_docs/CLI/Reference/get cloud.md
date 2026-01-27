@@ -1,0 +1,50 @@
+> ## Documentation Index
+>
+> Fetch the complete documentation index at: https://docs.runpod.io/llms.txt
+> Use this file to discover all available pages before exploring further.
+
+# get cloud
+
+List all GPUs currently available in the Runpod cloud, with options for filtering by GPU count, memory/disk size, and cloud type.
+
+<RequestExample>
+  ```sh Command theme={"theme":{"light":"github-light","dark":"github-dark"}}
+  runpodctl get cloud <gpuCount> [flags]
+  ```
+</RequestExample>
+
+## Example
+
+List all Secure Cloud GPUs with at least 4 instances available:
+
+```sh theme={"theme":{"light":"github-light","dark":"github-dark"}}
+runpodctl get cloud 4 --secure
+```
+
+## Arguments
+
+<ResponseField name="<gpuCount>" type="integer" default={1}>
+  The minimum number of GPUs that must be available for each option listed.
+</ResponseField>
+
+## Flags
+
+<ResponseField name="--disk" type="integer">
+  Filter for GPUs with a minimum disk size (in gigabytes).
+</ResponseField>
+
+<ResponseField name="--mem" type="integer">
+  Filter for GPUs with a minimum system memory size (in gigabytes).
+</ResponseField>
+
+<ResponseField name="--vcpu" type="integer">
+  Filter for GPUs with a minimum number of vCPUs.
+</ResponseField>
+
+<ResponseField name="-s, --secure">
+  List only GPUs from the [Secure Cloud](https://docs.runpod.io/pods/choose-a-pod#secure-cloud-vs-community-cloud).
+</ResponseField>
+
+<ResponseField name="-c, --community">
+  List only GPUs from the [Community Cloud](https://docs.runpod.io/pods/choose-a-pod#secure-cloud-vs-community-cloud).
+</ResponseField>

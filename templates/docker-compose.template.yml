@@ -1,0 +1,64 @@
+# ============================================================================
+# XiCON Serverless RunPod - Local Development Compose
+# ============================================================================
+# Workflow: {{ workflow_name }}
+# Generated: {{ timestamp }}
+# ============================================================================
+#
+# Usage:
+#   docker-compose up --build     # Build and start
+#   docker-compose down           # Stop
+#
+# Access ComfyUI at: http://localhost:8188
+# ============================================================================
+
+services:
+  comfyui:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: {{ container_name }}
+    ports:
+      - "8188:8188"
+    volumes:
+      # Mount output directory for generated files
+      - ./output:/comfyui/output
+      # Mount input directory for source files
+      - ./input:/comfyui/input
+      # Optional: Mount custom models directory
+      # - ./models:/comfyui/models
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    # For local development, run ComfyUI directly instead of handler
+    command: ["python", "main.py", "--listen", "0.0.0.0"]
+
+  # Optional: RunPod handler mode for testing
+  handler:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: {{ container_name }}-handler
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./output:/comfyui/output
+      - ./input:/comfyui/input
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+      - RUNPOD_DEBUG=true
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    profiles:
+      - handler
