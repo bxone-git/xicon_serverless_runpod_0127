@@ -16,8 +16,6 @@ import time
 import os
 import requests
 import base64
-import asyncio
-import aiohttp
 from io import BytesIO
 import websocket
 import uuid
@@ -157,45 +155,46 @@ def validate_input(job_input: Dict[str, Any]) -> Tuple[Optional[Dict[str, Any]],
 # URL Download Functions
 # ---------------------------------------------------------------------------
 
-async def download_file_async(session: aiohttp.ClientSession, url: str,
-                               target_path: str, file_type: str) -> Tuple[bool, str]:
+def download_file(url: str, target_path: str, file_type: str, timeout: int = 300) -> Tuple[bool, str]:
     """
-    Download a file from URL asynchronously.
+    Download a file from URL synchronously.
 
     Args:
-        session: aiohttp ClientSession
         url: Source URL
         target_path: Local path to save file
         file_type: Type description for logging
+        timeout: Download timeout in seconds (default 300 for large videos)
 
     Returns:
         tuple: (success, error_message)
     """
     try:
         print(f"worker-xicon - Downloading {file_type} from {url}")
-        async with session.get(url, timeout=aiohttp.ClientTimeout(total=300)) as response:
-            if response.status != 200:
-                return False, f"HTTP {response.status} downloading {file_type}"
+        response = requests.get(url, timeout=timeout, stream=True)
+        response.raise_for_status()
 
-            content = await response.read()
+        # Ensure parent directory exists
+        os.makedirs(os.path.dirname(target_path), exist_ok=True)
 
-            # Ensure parent directory exists
-            os.makedirs(os.path.dirname(target_path), exist_ok=True)
+        # Write content in chunks for large files
+        with open(target_path, 'wb') as f:
+            for chunk in response.iter_content(chunk_size=8192):
+                f.write(chunk)
 
-            with open(target_path, 'wb') as f:
-                f.write(content)
-
-            print(f"worker-xicon - Downloaded {file_type}: {len(content)} bytes -> {target_path}")
-            return True, ""
-    except asyncio.TimeoutError:
+        file_size = os.path.getsize(target_path)
+        print(f"worker-xicon - Downloaded {file_type}: {file_size} bytes -> {target_path}")
+        return True, ""
+    except requests.Timeout:
         return False, f"Timeout downloading {file_type} from {url}"
-    except Exception as e:
+    except requests.RequestException as e:
         return False, f"Error downloading {file_type}: {e}"
+    except Exception as e:
+        return False, f"Unexpected error downloading {file_type}: {e}"
 
 
-async def download_inputs_async(validated_data: Dict[str, Any], job_id: str) -> Tuple[Dict[str, str], Optional[str]]:
+def download_inputs(validated_data: Dict[str, Any], job_id: str) -> Tuple[Dict[str, str], Optional[str]]:
     """
-    Download all input images and videos asynchronously.
+    Download all input images and videos synchronously.
 
     Args:
         validated_data: Validated input data containing URLs
@@ -205,59 +204,35 @@ async def download_inputs_async(validated_data: Dict[str, Any], job_id: str) -> 
         tuple: (filenames_dict, error_message)
     """
     filenames = {}
-    download_tasks = []
 
-    async with aiohttp.ClientSession() as session:
-        # Reference image (required)
-        ref_url = validated_data["reference_image_url"]
-        ref_ext = os.path.splitext(urllib.parse.urlparse(ref_url).path)[1] or ".png"
-        ref_filename = f"ref_{job_id}{ref_ext}"
-        ref_path = os.path.join(COMFY_INPUT_DIR, ref_filename)
-        download_tasks.append(
-            download_file_async(session, ref_url, ref_path, "reference_image")
-        )
-        filenames["reference_image"] = ref_filename
+    # Reference image (required)
+    ref_url = validated_data["reference_image_url"]
+    ref_ext = os.path.splitext(urllib.parse.urlparse(ref_url).path)[1] or ".png"
+    ref_filename = f"ref_{job_id}{ref_ext}"
+    ref_path = os.path.join(COMFY_INPUT_DIR, ref_filename)
 
-        # Dance video (optional)
-        video_url = validated_data.get("dance_video_url", "")
-        if video_url:
-            video_ext = os.path.splitext(urllib.parse.urlparse(video_url).path)[1] or ".mp4"
-            video_filename = f"dance_{job_id}{video_ext}"
-            video_path = os.path.join(COMFY_INPUT_DIR, video_filename)
-            download_tasks.append(
-                download_file_async(session, video_url, video_path, "dance_video")
-            )
-            filenames["dance_video"] = video_filename
-        else:
-            filenames["dance_video"] = ""
+    success, error = download_file(ref_url, ref_path, "reference_image")
+    if not success:
+        return {}, error
+    filenames["reference_image"] = ref_filename
 
-        # Execute all downloads in parallel
-        results = await asyncio.gather(*download_tasks, return_exceptions=True)
+    # Dance video (optional)
+    video_url = validated_data.get("dance_video_url", "")
+    if video_url:
+        video_ext = os.path.splitext(urllib.parse.urlparse(video_url).path)[1] or ".mp4"
+        video_filename = f"dance_{job_id}{video_ext}"
+        video_path = os.path.join(COMFY_INPUT_DIR, video_filename)
 
-        # Check for errors
-        for i, result in enumerate(results):
-            if isinstance(result, Exception):
-                return {}, f"Download failed: {result}"
-            success, error = result
-            if not success:
-                return {}, error
+        success, error = download_file(video_url, video_path, "dance_video", timeout=600)
+        if not success:
+            # Clean up the already downloaded reference image
+            cleanup_input_files({"reference_image": ref_filename})
+            return {}, error
+        filenames["dance_video"] = video_filename
+    else:
+        filenames["dance_video"] = ""
 
     return filenames, None
-
-
-def download_inputs(validated_data: Dict[str, Any], job_id: str) -> Tuple[Dict[str, str], Optional[str]]:
-    """
-    Synchronous wrapper for async download function.
-    """
-    try:
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        try:
-            return loop.run_until_complete(download_inputs_async(validated_data, job_id))
-        finally:
-            loop.close()
-    except Exception as e:
-        return {}, f"Failed to download inputs: {e}"
 
 
 # ---------------------------------------------------------------------------
