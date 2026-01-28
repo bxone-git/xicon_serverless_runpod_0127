@@ -49,10 +49,16 @@ RUN comfy model download --url https://github.com/isarandi/nlf/releases/download
 RUN comfy model download --url https://huggingface.co/Wan-AI/Wan2.1-T2V-14B/resolve/main/Wan2.1_VAE.pth --relative-path models/vae --filename Wan2.1_VAE.pth
 
 # Text Encoder (11.4 GB)
-RUN comfy model download --url https://huggingface.co/Kijai/WanVideo_comfy/resolve/main/umt5-xxl-enc-bf16.safetensors --relative-path models/text_encoders --filename umt5-xxl-enc-bf16.safetensors
+RUN mkdir -p /comfyui/models/text_encoders && \
+    wget --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 10 \
+    -O /comfyui/models/text_encoders/umt5-xxl-enc-bf16.safetensors \
+    https://huggingface.co/Kijai/WanVideo_comfy/resolve/main/umt5-xxl-enc-bf16.safetensors
 
 # LightX2V LoRA (739 MB)
-RUN comfy model download --url https://huggingface.co/lightx2v/Wan2.1-I2V-14B-480P-StepDistill-CfgDistill-Lightx2v/resolve/main/loras/Wan21_I2V_14B_lightx2v_cfg_step_distill_lora_rank64.safetensors --relative-path models/loras --filename lightx2v_I2V_14B_480p_cfg_step_distill_rank64_bf16.safetensors
+RUN mkdir -p /comfyui/models/loras && \
+    wget --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 10 \
+    -O /comfyui/models/loras/lightx2v_I2V_14B_480p_cfg_step_distill_rank64_bf16.safetensors \
+    https://huggingface.co/lightx2v/Wan2.1-I2V-14B-480P-StepDistill-CfgDistill-Lightx2v/resolve/main/loras/Wan21_I2V_14B_lightx2v_cfg_step_distill_lora_rank64.safetensors
 
 # ViTPose ONNX Model
 RUN comfy model download --url https://huggingface.co/Kijai/vitpose_comfy/resolve/main/onnx/vitpose_h_wholebody_model.onnx --relative-path models/detection --filename vitpose_h_wholebody_model.onnx
