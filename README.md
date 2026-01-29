@@ -41,6 +41,24 @@ ghcr.io/bxone-git/xicon-dance-scail:latest
 
 ---
 
+## 📋 Recent Updates
+
+### v1.1.0 - Race Condition Fix (2026-01-29)
+
+**Fixed:** Critical race condition where Handler started before ComfyUI was ready, causing jobs to fail in 0.132s.
+
+**Changes:**
+- Added health check wait loop in `start.sh` (polls `/system_stats` endpoint)
+- Wait up to 120 seconds for ComfyUI to be fully initialized
+- Progress logging every 10 seconds for debugging
+- Uses `wget` (available in base image) instead of `curl`
+
+**Impact:** Jobs now properly wait for ComfyUI readiness before processing requests.
+
+**Documentation:** See [DEPLOYMENT.md](./DEPLOYMENT.md) for deployment guide.
+
+---
+
 ## 🛠️ Local Development
 
 ### Build Locally
